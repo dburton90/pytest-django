@@ -360,6 +360,21 @@ def django_assert_num_queries(pytestconfig):
 
 @pytest.yield_fixture(scope='function')
 def model_watcher():
+    """
+    Watch changes (create, update, delete) of specific model(s), and provide access to every change.
+
+    usecase:
+
+        model_watcher.set_watcher(ModelClass)
+
+        model_watcher.created[ModelClass] -> list of created instances of ModelClass
+        model_watcher.updated[ModelClass] -> list of updated instances of ModelClass
+        model_watcher.deleted[ModelClass] -> list of deleted instances of ModelClass
+
+        model_watcher.clean_watchers() -> clear all lists of changes
+
+    :return: ModelWatcher()
+    """
     watcher = ModelWatcher()
     yield watcher
     watcher.unset_watchers(*watcher.watched_models)

@@ -16,7 +16,7 @@ class ModelWatcher:
 
     def _mock_forbidden_methods(self, model_class):
         """
-        This method override QuerySet's methods, which does not call pre/post signals:
+        This method override all Managers's methods, which does not call pre/post signals:
         - update
         - bulk_create
         - _update
@@ -43,18 +43,21 @@ class ModelWatcher:
                 setattr(manager, method_name, method)
 
     def _get_model_managers(self, model_class):
-        """
-        :param model_class:
-        :return:
-        """
         for name, obj in vars(model_class).items():
             if isinstance(obj, Manager):
                 yield obj
             elif isinstance(obj, ManagerDescriptor):
                 yield getattr(model_class, name)
 
-
     def set_watcher(self, model):
+        """
+        set listeners to model's signals and save all instance of model to 'updated', 'created', 'deleted' lists
+        When the watcher is active, you can't use methods like 'update', 'bulk_create', and '_updated' on
+        model's managers. It will raise NotImplementedError, because these methods does not trigger signals.
+
+        :param model: Model class
+        :return:
+        """
         watched_models = self.watched_models or set()
         if model in watched_models:
             return
@@ -105,6 +108,11 @@ class ModelWatcher:
         setattr(self, 'updated', updated)
 
     def unset_watchers(self, *models):
+        """
+        unset signals, and set back Manager's original methods.
+        :param models:
+        :return:
+        """
         watched_models = getattr(self, 'watched_models', set())
         for model in models or watched_models.copy():
             if model in watched_models:
