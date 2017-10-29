@@ -480,3 +480,41 @@ def test_mail(mailoutbox):
 
 def test_mail_again(mailoutbox):
     test_mail(mailoutbox)
+
+
+def test_watcher_created(model_watcher, db):
+    model_watcher.set_watcher(Item)
+    item = Item.objects.create(name='foo')
+    created_item = model_watcher.created[Item][0]
+    assert item.pk == created_item.pk
+
+
+def test_watcher_updated(model_watcher, db):
+    item = Item.objects.create(name='foo')
+    model_watcher.set_watcher(Item)
+    item.name = 'bee'
+    item.save()
+    created_item = model_watcher.updated[Item][0]
+    assert item.name == created_item.name == 'bee'
+
+
+def test_watcher_deleted(model_watcher, db):
+    item = Item.objects.create(name='foo')
+    model_watcher.set_watcher(Item)
+    item.delete()
+    deleted_item = model_watcher.deleted[Item][0]
+    assert item.name == deleted_item.name
+
+
+@pytest.mark.parametrize('method_name', ['update', 'bulk_create', '_update'])
+def test_raises_not_implemented(model_watcher, method_name, db):
+    model_watcher.set_watcher(Item)
+    item = Item.objects.create(name='foo')
+    method = getattr(Item.objects, method_name)
+    old_method = model_watcher._mocked_methods[Item]['objects'][method_name]
+    assert old_method != getattr(Item.objects, method_name)
+    with pytest.raises(NotImplementedError):
+        method()
+
+    model_watcher.unset_watchers(Item)
+    assert old_method == getattr(Item.objects, method_name)

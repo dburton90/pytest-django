@@ -8,6 +8,7 @@ import pytest
 
 from contextlib import contextmanager
 
+from pytest_django.model_watcher import ModelWatcher
 from . import live_server_helper
 
 from .django_compat import is_django_unittest
@@ -355,3 +356,10 @@ def django_assert_num_queries(pytestconfig):
                 pytest.fail(msg)
 
     return _assert_num_queries
+
+
+@pytest.yield_fixture(scope='function')
+def model_watcher():
+    watcher = ModelWatcher()
+    yield watcher
+    watcher.unset_watchers(*watcher.watched_models)
